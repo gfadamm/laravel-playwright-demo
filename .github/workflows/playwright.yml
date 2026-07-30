@@ -4,10 +4,17 @@ on:
   pull_request:
     branches: [main]
 
+  schedule:
+    # Every day at 00:00 WIB (17:00 UTC)
+    - cron: '0 17 * * *'
+
+  workflow_dispatch:
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     steps:
       # Checkout repository
       - name: Checkout repository
@@ -19,6 +26,16 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+          tools: composer:v2
+
+      # Cache Composer dependencies
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
 
       # Setup Node.js
       - name: Setup Node.js
@@ -52,15 +69,27 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      # Run Playwright tests
-      - name: Run Playwright tests
+      # Run smoke tests for Pull Requests
+      - name: Run Playwright smoke tests
+        if: github.event_name == 'pull_request'
         env:
           APP_ENV: testing
           APP_URL: http://127.0.0.1:8000
           SESSION_DRIVER: file
           CACHE_STORE: file
           QUEUE_CONNECTION: sync
-        run: npx playwright test
+        run: npx playwright test --grep @smoke --reporter=html
+
+      # Run full regression for nightly schedule and manual trigger
+      - name: Run Playwright full regression
+        if: github.event_name != 'pull_request'
+        env:
+          APP_ENV: testing
+          APP_URL: http://127.0.0.1:8000
+          SESSION_DRIVER: file
+          CACHE_STORE: file
+          QUEUE_CONNECTION: sync
+        run: npx playwright test --reporter=html
 
       # Show Laravel log if failed
       - name: Show Laravel log

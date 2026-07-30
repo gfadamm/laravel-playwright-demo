@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test('About is accessible', async ({ page }) => {
+test('About is accessible', {
+  tag: ['@smoke']
+}, async ({ page }) => {
   await page.goto('/about');
 
   await expect(page.getByRole('heading')).toHaveText('About');
