@@ -7,42 +7,72 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
+      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      # Setup PHP
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          coverage: none
 
+      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
+      # Install Composer dependencies
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      # Install Node dependencies
       - name: Install Node dependencies
         run: npm ci
 
+      # Build Vite assets
+      - name: Build frontend assets
+        run: npm run build
+
+      # Prepare Laravel
       - name: Prepare Laravel
         run: |
           cp .env.example .env
           php artisan key:generate
+          php artisan config:clear
+          php artisan route:clear
+          php artisan view:clear
 
+      # Install Playwright browsers
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
+      # Run Playwright tests
       - name: Run Playwright tests
+        env:
+          APP_ENV: testing
+          APP_URL: http://127.0.0.1:8000
         run: npx playwright test
 
+      # Show Laravel log if failed
+      - name: Show Laravel log
+        if: failure()
+        run: |
+          if [ -f storage/logs/laravel.log ]; then
+            echo "===== Laravel Log ====="
+            cat storage/logs/laravel.log
+          fi
+
+      # Upload Playwright HTML report
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 30
