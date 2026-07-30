@@ -57,6 +57,9 @@ jobs:
         env:
           APP_ENV: testing
           APP_URL: http://127.0.0.1:8000
+          SESSION_DRIVER: file
+          CACHE_STORE: file
+          QUEUE_CONNECTION: sync
         run: npx playwright test
 
       # Show Laravel log if failed
