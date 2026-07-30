@@ -36,13 +36,24 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      testMatch: /e2e\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
     },
 
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    }
+      testMatch: /e2e\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Firefox'],
+      },
+    },
+
+    {
+      name: 'api',
+      testMatch: /api\/.*\.spec\.ts/,
+    },
 
     /* Test against mobile viewports. */
     // {
